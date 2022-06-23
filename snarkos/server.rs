@@ -163,6 +163,7 @@ impl<N: Network, E: Environment> Server<N, E> {
                 loop {
                     // Don't accept connections if the node is breaching the configured peer limit.
                     if state.peers().number_of_connected_peers().await < E::MAXIMUM_NUMBER_OF_PEERS {
+                        info!("AAAAAAAAAAAAAAA MAXIMUM_NUMBER_OF_PEERS = {}", E::MAXIMUM_NUMBER_OF_PEERS);
                         // Asynchronously wait for an inbound TcpStream.
                         match listener.accept().await {
                             // Process the inbound connection request.
