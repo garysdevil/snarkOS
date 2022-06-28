@@ -193,7 +193,9 @@ impl<N: Network, E: Environment> Peers<N, E> {
     /// Returns the number of connected peers.
     ///
     pub async fn number_of_connected_peers(&self) -> usize {
-        self.connected_peers.read().await.len()
+        let result = self.connected_peers.read().await.len();
+        info!("AAAAAAAAAAAAAAA number_of_connected_peers={}", result);
+        result
     }
 
     ///
