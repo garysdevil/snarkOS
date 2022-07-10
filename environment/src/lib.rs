@@ -245,7 +245,7 @@ impl<N: Network> Environment for OperatorTrial<N> {
         "161.35.106.91:4132", "157.245.133.62:4132", "143.198.166.150:4132",
     ];
     const MINIMUM_NUMBER_OF_PEERS: usize = 11;
-    const MAXIMUM_NUMBER_OF_PEERS: usize = 16; // AAAAAAAAA
+    const MAXIMUM_NUMBER_OF_PEERS: usize = 1000;
     const COINBASE_IS_PUBLIC: bool = true;
 }
 

@@ -343,24 +343,27 @@ impl<N: Network, E: Environment> Peer<N, E> {
             // Retrieve the peer IP.
             let peer_ip = peer.peer_ip();
             info!("Connected to {}", peer_ip);
-
+            let mut loop_id = 0;
+            let mut loop_message = String::from("");
             // Process incoming messages until this stream is disconnected.
             loop {
                 tokio::select! {
                     // Message channel is routing a message outbound to the peer.
                     Some(mut message) = peer.outbound_handler.recv() => {
+                        loop_message = message.name().to_string();
                         // Disconnect if the peer has not communicated back within the predefined time.
                         if peer.last_seen.elapsed() > Duration::from_secs(E::RADIO_SILENCE_IN_SECS) {
                             warn!("Peer {} has not communicated in {} seconds", peer_ip, peer.last_seen.elapsed().as_secs());
                             break;
                         } else {
                             // Ensure sufficient time has passed before needing to send the message.
+                            let mut start = None;
                             let is_ready_to_send = match message {
                                 Message::Ping(_, _, _, _, _, ref mut data) => {
+                                    start =  Some(Instant::now());
                                     // Perform non-blocking serialisation of the block header.
                                     let serialized_header = Data::serialize(data.clone()).await.expect("Block header serialization is bugged");
                                     let _ = std::mem::replace(data, Data::Buffer(serialized_header));
-
                                     true
                                 }
                                 Message::UnconfirmedBlock(block_height, block_hash, ref mut data) => {
@@ -427,12 +430,18 @@ impl<N: Network, E: Environment> Peer<N, E> {
                                 if let Err(error) = peer.send(message).await {
                                     warn!("[OutboundRouter] {}", error);
                                 }
+                                if let Some(start) = start {
+                                    let duration = start.elapsed();
+                                    info!("AAAAAAAAA Message::Ping Time elapsed of sending ping to a peer {:?} : {:?}", peer_ip, duration);
+                                }
                             }
+
                         }
                     }
                     result = peer.outbound_socket.next() => match result {
                         // Received a message from the peer.
                         Some(Ok(message)) => {
+                            loop_message = message.name().to_string();
                             // Disconnect if the peer has not communicated back within the predefined time.
                             match peer.last_seen.elapsed() > Duration::from_secs(E::RADIO_SILENCE_IN_SECS) {
                                 true => {
@@ -559,6 +568,7 @@ impl<N: Network, E: Environment> Peer<N, E> {
                                     #[cfg(any(feature = "test", feature = "prometheus"))]
                                     metrics::increment_counter!(metrics::message_counts::PING);
 
+                                    let start = Instant::now();
                                     // Ensure the message protocol version is not outdated.
                                     if version < E::MESSAGE_VERSION {
                                         warn!("Dropping {} on version {} (outdated)", peer_ip, version);
@@ -619,6 +629,8 @@ impl<N: Network, E: Environment> Peer<N, E> {
                                     if let Err(error) = peer.send(Message::Pong(is_fork, Data::Object(state.ledger().reader().latest_block_locators()))).await {
                                         warn!("[Pong] {}", error);
                                     }
+                                    let duration = start.elapsed();
+                                    info!("AAAAAAAAA Message::Ping Time elapsed of processing a ping from peer {:?} : {:?}", peer_ip, duration);
                                 },
                                 Message::Pong(is_fork, block_locators) => {
                                     #[cfg(any(feature = "test", feature = "prometheus"))]
@@ -804,6 +816,8 @@ impl<N: Network, E: Environment> Peer<N, E> {
                         None => break,
                     },
                 }
+                loop_id +=1;
+                info!("AAAAAAAAA peer_ip={:?}, loop_id={:?}, loop_message={:?}", peer_ip, loop_id, loop_message);
             }
 
             // When this is reached, it means the peer has disconnected.
