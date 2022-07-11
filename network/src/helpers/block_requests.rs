@@ -63,7 +63,7 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
     //     maximal_peer_gary.0,
     //     maximal_peer_gary.1
     // );
-    // println!("AAAAAAAAAA find_maximal_peer map_peer_gary={:?}", map_peer_gary);
+    println!("AAAAAAAAAA find_maximal_peer map_peer_gary={:?}", map_peer_gary);
 
     maximal_peer
 }
