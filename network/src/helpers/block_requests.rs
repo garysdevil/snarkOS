@@ -58,11 +58,12 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
             }
         }
     }
-    // let maximal_peer_gary = maximal_peer.clone().unwrap();
-    // info!("AAAAAAAAAA find_maximal_peer end: peer_ip=${:?}, fork=${:?}",
-    //     maximal_peer_gary.0,
-    //     maximal_peer_gary.1
-    // );
+    if let Some((ref peer_ip, ref maximal_peer_is_on_fork, _)) = maximal_peer {
+        info!(
+            "AAAAAAAAAA find_maximal_peer end: peer_ip={:?}, fork={:?}",
+            peer_ip, maximal_peer_is_on_fork
+        );
+    }
     println!("AAAAAAAAAA find_maximal_peer map_peer_gary={:?}", map_peer_gary);
 
     maximal_peer
