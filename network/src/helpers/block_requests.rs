@@ -55,9 +55,9 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
                     maximal_peer = Some((*peer_ip, is_on_fork.unwrap(), block_locators.clone()));
                     *maximum_block_height = *block_height;
                     *maximum_cumulative_weight = cumulative_weight;
+                    start_to_find_maximal_peer = true;
                 }
             }
-            start_to_find_maximal_peer = true;
         }
     }
     if let Some((ref peer_ip, ref maximal_peer_is_on_fork, _)) = maximal_peer {
