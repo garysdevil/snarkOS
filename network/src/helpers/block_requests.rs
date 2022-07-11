@@ -37,6 +37,7 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
 
     let mut maximal_peer = None;
     let mut map_peer_gary = std::collections::HashMap::new(); // AAAAAAAAAA
+    let mut start_to_find_maximal_peer = false;
     for (peer_ip, peer_state) in peers_state.iter() {
         // Only update the maximal peer if there are no sync nodes or the peer is a sync node.
         if !peers_contains_sync_node || E::sync_nodes().contains(peer_ip) {
@@ -56,14 +57,19 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
                     *maximum_cumulative_weight = cumulative_weight;
                 }
             }
+            start_to_find_maximal_peer = true;
         }
     }
     if let Some((ref peer_ip, ref maximal_peer_is_on_fork, _)) = maximal_peer {
         info!(
-            "AAAAAAAAAA find_maximal_peer end: peer_ip={:?}, fork={:?}",
-            peer_ip, maximal_peer_is_on_fork
+            "AAAAAAAAAA find_maximal_peer end: peer_ip={:?}, maximal_peer_is_on_fork={:?}, maximum_cumulative_weight={}",
+            peer_ip, maximal_peer_is_on_fork, maximum_cumulative_weight
         );
     }
+    info!(
+        "AAAAAAAAAA find_maximal_peer end: start_to_find_maximal_peer={}",
+        start_to_find_maximal_peer
+    );
     println!("AAAAAAAAAA find_maximal_peer map_peer_gary={:?}", map_peer_gary);
 
     maximal_peer

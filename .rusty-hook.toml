@@ -1,5 +1,7 @@
 [hooks]
 pre-commit = "cargo +nightly clippy && cargo +nightly fmt --all -- --check"
+# rustfmt  +nightly  ./network/src/helpers/block_requests.rs
+# cargo +nightly fmt
 
 [logging]
 verbose = true
