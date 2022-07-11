@@ -344,13 +344,15 @@ impl<N: Network, E: Environment> Peer<N, E> {
             let peer_ip = peer.peer_ip();
             info!("Connected to {}", peer_ip);
             let mut loop_id = 0;
-            let mut loop_message = String::from("");
             // Process incoming messages until this stream is disconnected.
             loop {
+                let mut loop_message = String::from("");
+                let mut loop_type = String::from("");
                 tokio::select! {
                     // Message channel is routing a message outbound to the peer.
                     Some(mut message) = peer.outbound_handler.recv() => {
                         loop_message = message.name().to_string();
+                        loop_type = "internal".to_string();
                         // Disconnect if the peer has not communicated back within the predefined time.
                         if peer.last_seen.elapsed() > Duration::from_secs(E::RADIO_SILENCE_IN_SECS) {
                             warn!("Peer {} has not communicated in {} seconds", peer_ip, peer.last_seen.elapsed().as_secs());
@@ -442,6 +444,7 @@ impl<N: Network, E: Environment> Peer<N, E> {
                         // Received a message from the peer.
                         Some(Ok(message)) => {
                             loop_message = message.name().to_string();
+                            loop_type = "outside".to_string();
                             // Disconnect if the peer has not communicated back within the predefined time.
                             match peer.last_seen.elapsed() > Duration::from_secs(E::RADIO_SILENCE_IN_SECS) {
                                 true => {
@@ -817,7 +820,7 @@ impl<N: Network, E: Environment> Peer<N, E> {
                     },
                 }
                 loop_id +=1;
-                info!("AAAAAAAAA peer_ip={:?}, loop_id={:?}, loop_message={:?}", peer_ip, loop_id, loop_message);
+                info!("AAAAAAAAA peer_ip={:?}, loop_id={:?}, loop_type={:?}, loop_message={:?}", peer_ip, loop_id, loop_type, loop_message);
             }
 
             // When this is reached, it means the peer has disconnected.
