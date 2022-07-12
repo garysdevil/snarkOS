@@ -43,8 +43,8 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
         if !peers_contains_sync_node || E::sync_nodes().contains(peer_ip) {
             // Update the maximal peer state if the peer is ahead and the peer knows if you are a fork or not.
             // This accounts for (Case 1 and Case 2(a))
-            if let Some((_, _, is_on_fork, block_height, block_locators)) = peer_state {
-                map_peer_gary.insert(*peer_ip, *block_height);
+            if let Some((node_type, status, is_on_fork, block_height, block_locators)) = peer_state {
+                map_peer_gary.insert(*peer_ip, (node_type.clone(), status.clone(), *block_height));
                 // Retrieve the cumulative weight, defaulting to the block height if it does not exist.
                 let cumulative_weight = match block_locators.get_cumulative_weight(*block_height) {
                     Some(cumulative_weight) => cumulative_weight,
@@ -62,7 +62,7 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
     }
     if let Some((ref peer_ip, ref maximal_peer_is_on_fork, _)) = maximal_peer {
         info!(
-            "AAAAAAAAAA find_maximal_peer end: peer_ip={:?}, maximal_peer_is_on_fork={:?}, maximum_cumulative_weight={}, maximum_block_height={}, map_peer_gary={:?}",
+            "AAAAAAAAAA find_maximal_peer end: max_height_peer_ip={:?}, maximal_peer_is_on_fork={:?}, maximum_cumulative_weight={}, maximum_block_height={}, map_peer_gary={:?}",
             peer_ip, maximal_peer_is_on_fork, maximum_cumulative_weight, maximum_block_height, map_peer_gary
         );
     } else {
