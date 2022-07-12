@@ -62,15 +62,15 @@ pub fn find_maximal_peer<N: Network, E: Environment>(
     }
     if let Some((ref peer_ip, ref maximal_peer_is_on_fork, _)) = maximal_peer {
         info!(
-            "AAAAAAAAAA find_maximal_peer end: peer_ip={:?}, maximal_peer_is_on_fork={:?}, maximum_cumulative_weight={}",
-            peer_ip, maximal_peer_is_on_fork, maximum_cumulative_weight
+            "AAAAAAAAAA find_maximal_peer end: peer_ip={:?}, maximal_peer_is_on_fork={:?}, maximum_cumulative_weight={}, maximum_block_height={}, map_peer_gary={:?}",
+            peer_ip, maximal_peer_is_on_fork, maximum_cumulative_weight, maximum_block_height, map_peer_gary
+        );
+    } else {
+        info!(
+            "AAAAAAAAAA find_maximal_peer end: start_to_find_maximal_peer={}",
+            start_to_find_maximal_peer
         );
     }
-    info!(
-        "AAAAAAAAAA find_maximal_peer end: start_to_find_maximal_peer={}",
-        start_to_find_maximal_peer
-    );
-    println!("AAAAAAAAAA find_maximal_peer map_peer_gary={:?}", map_peer_gary);
 
     maximal_peer
 }
