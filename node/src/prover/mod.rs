@@ -159,7 +159,7 @@ impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
                 info!(
                     "{}",
                     format!(
-                        "Total proofs: {} (1m: {} p/s, 5m: {} p/s, 15m: {} p/s, 30m: {} p/s, 60m: {} p/s)",
+                        "Total solutions: {} (1m: {} p/s, 5m: {} p/s, 15m: {} p/s, 30m: {} p/s, 60m: {} p/s)",
                         proofs,
                         calculate_proof_rate(proofs, m1, 1),
                         calculate_proof_rate(proofs, m5, 5),
