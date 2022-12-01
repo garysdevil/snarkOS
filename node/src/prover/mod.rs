@@ -52,6 +52,8 @@ use std::{
 use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 
+use std::{collections::VecDeque, sync::atomic::AtomicU32};
+
 /// A prover is a full node, capable of producing proofs for consensus.
 #[derive(Clone)]
 pub struct Prover<N: Network, C: ConsensusStorage<N>> {
@@ -77,6 +79,8 @@ pub struct Prover<N: Network, C: ConsensusStorage<N>> {
     shutdown: Arc<AtomicBool>,
     /// PhantomData.
     _phantom: PhantomData<C>,
+    // 统计算力
+    total_proofs: Arc<AtomicU32>,
 }
 
 impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
@@ -102,6 +106,8 @@ impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
         let coinbase_puzzle = CoinbasePuzzle::<N>::load()?;
         // Compute the maximum number of puzzle instances.
         let max_puzzle_instances = num_cpus::get().saturating_sub(2).clamp(1, 6);
+        // let max_puzzle_instances = num_cpus::get().saturating_sub(2) / 8;
+        info!("=== max_puzzle_instances={}", max_puzzle_instances);
         // Initialize the node.
         let node = Self {
             account,
@@ -115,6 +121,7 @@ impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
             handles: Default::default(),
             shutdown: Default::default(),
             _phantom: Default::default(),
+            total_proofs: Default::default(),
         };
         // Initialize the routing.
         node.initialize_routing().await;
@@ -124,6 +131,45 @@ impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
         node.handle_signals();
         // Return the node.
         Ok(node)
+    }
+
+    async fn statistic(&self) {
+        let total_proofs = self.total_proofs.clone();
+        tokio::task::spawn(async move {
+            fn calculate_proof_rate(now: u32, past: u32, interval: u32) -> Box<str> {
+                if interval < 1 {
+                    return Box::from("---");
+                }
+                if now <= past || past == 0 {
+                    return Box::from("---");
+                }
+                let rate = (now - past) as f64 / (interval * 60) as f64;
+                Box::from(format!("{:.2}", rate))
+            }
+            let mut log = VecDeque::<u32>::from(vec![0; 60]);
+            loop {
+                tokio::time::sleep(Duration::from_secs(60)).await;
+                let proofs = total_proofs.load(Ordering::SeqCst);
+                log.push_back(proofs);
+                let m1 = *log.get(59).unwrap_or(&0);
+                let m5 = *log.get(55).unwrap_or(&0);
+                let m15 = *log.get(45).unwrap_or(&0);
+                let m30 = *log.get(30).unwrap_or(&0);
+                let m60 = log.pop_front().unwrap_or_default();
+                info!(
+                    "{}",
+                    format!(
+                        "Total proofs: {} (1m: {} p/s, 5m: {} p/s, 15m: {} p/s, 30m: {} p/s, 60m: {} p/s)",
+                        proofs,
+                        calculate_proof_rate(proofs, m1, 1),
+                        calculate_proof_rate(proofs, m5, 5),
+                        calculate_proof_rate(proofs, m15, 15),
+                        calculate_proof_rate(proofs, m30, 30),
+                        calculate_proof_rate(proofs, m60, 60),
+                    )
+                );
+            }
+        });
     }
 }
 
@@ -176,6 +222,7 @@ impl<N: Network, C: ConsensusStorage<N>> NodeInterface<N> for Prover<N, C> {
 impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
     /// Initialize a new instance of the coinbase puzzle.
     async fn initialize_coinbase_puzzle(&self) {
+        self.statistic().await;
         for _ in 0..self.max_puzzle_instances {
             let prover = self.clone();
             self.handles.write().push(tokio::spawn(async move {
@@ -218,16 +265,18 @@ impl<N: Network, C: ConsensusStorage<N>> Prover<N, C> {
                     prover.coinbase_puzzle_iteration(challenge, coinbase_target, proof_target, &mut OsRng)
                 })
                 .await;
-
                 // If the prover found a solution, then broadcast it.
                 if let Ok(Some((solution_target, solution))) = result {
                     info!("Found a Solution '{}' (Proof Target {solution_target})", solution.commitment());
                     // Broadcast the prover solution.
                     self.broadcast_prover_solution(solution);
                 }
+                self.total_proofs.fetch_add(1, Ordering::SeqCst);
+                // debug!("=== {}", self.total_proofs.load(Ordering::SeqCst));
             } else {
                 // Otherwise, sleep for a brief period of time, to await for puzzle state.
                 tokio::time::sleep(Duration::from_secs(1)).await;
+                trace!("=== sleep for a brief period of time, to await for puzzle state.");
             }
 
             // If the Ctrl-C handler registered the signal, stop the prover.
